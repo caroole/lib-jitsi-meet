@@ -342,8 +342,18 @@ Moderator.prototype.parseConfigOptions = function(resultIq) {
     // eslint-disable-next-line newline-per-chained-call
     const authIdentity = $(resultIq).find('>conference').attr('identity');
 
-    this.eventEmitter.emit(AuthenticationEvents.IDENTITY_UPDATED,
-        authenticationEnabled, authIdentity);
+    // this.eventEmitter.emit(AuthenticationEvents.IDENTITY_UPDATED,
+    //     authenticationEnabled, authIdentity);
+
+    const extensionMsg = $(resultIq).find('>conference').attr('extensionMsg');
+
+    logger.info(
+        `authIdentity: ${authIdentity}`);
+    logger.info(
+        `extensionMsg: ${extensionMsg}`);
+    if(authIdentity != 'ok'){
+        this.eventEmitter.emit(AuthenticationEvents.EXTENSION_MSG, authIdentity);
+    }
 
     // Check if focus has auto-detected Jigasi component(this will be also
     // included if we have passed our host from the config)

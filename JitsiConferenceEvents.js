@@ -7,6 +7,8 @@
  */
 export const AUTH_STATUS_CHANGED = 'conference.auth_status_changed';
 
+export const EXTENSION_MSG = 'conference.extension_msg';
+
 /**
  * A participant avatar has changed.
  */

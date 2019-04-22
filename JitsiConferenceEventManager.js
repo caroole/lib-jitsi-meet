@@ -309,6 +309,11 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
                 authIdentity);
         });
 
+    chatRoom.addListener(AuthenticationEvents.EXTENSION_MSG,
+        (extensionMsg) => {
+            conference.eventEmitter.emit(
+                JitsiConferenceEvents.EXTENSION_MSG, extensionMsg);
+        });
     chatRoom.addListener(
         XMPPEvents.MESSAGE_RECEIVED,
 
