@@ -135,6 +135,9 @@ export default function JitsiConference(options) {
     };
     this.isMutedByFocus = false;
 
+    // when muted by focus we receive the jid of the initiator of the mute
+    this.mutedByFocusActor = null;
+
     // Flag indicates if the 'onCallEnded' method was ever called on this
     // instance. Used to log extra analytics event for debugging purpose.
     // We need to know if the potential issue happened before or after
@@ -828,7 +831,16 @@ JitsiConference.prototype._fireMuteChangeEvent = function(track) {
         // unmute local user on server
         this.room.muteParticipant(this.room.myroomjid, false);
     }
-    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track);
+
+    let actorParticipant;
+
+    if (this.mutedByFocusActor) {
+        const actorId = Strophe.getResourceFromJid(this.mutedByFocusActor);
+
+        actorParticipant = this.participants[actorId];
+    }
+
+    this.eventEmitter.emit(JitsiConferenceEvents.TRACK_MUTE_CHANGED, track, actorParticipant);
 };
 
 /**
@@ -1055,6 +1067,22 @@ JitsiConference.prototype.getRole = function() {
 };
 
 /**
+ * Returns whether or not the current conference has been joined as a hidden
+ * user.
+ *
+ * @returns {boolean|null} True if hidden, false otherwise. Will return null if
+ * no connection is active.
+ */
+JitsiConference.prototype.isHidden = function() {
+    if (!this.connection) {
+        return null;
+    }
+
+    return Strophe.getDomainFromJid(this.connection.getJid())
+        === this.options.config.hiddenDomain;
+};
+
+/**
  * Check if local user is moderator.
  * @returns {boolean|null} true if local user is moderator, false otherwise. If
  * we're no longer in the conference room then <tt>null</tt> is returned.
@@ -1070,7 +1098,7 @@ JitsiConference.prototype.isModerator = function() {
  */
 JitsiConference.prototype.lock = function(password) {
     if (!this.isModerator()) {
-        return Promise.reject();
+        return Promise.reject(new Error('You are not moderator.'));
     }
 
     return new Promise((resolve, reject) => {
@@ -1312,8 +1340,9 @@ JitsiConference.prototype.onMemberJoined = function(
     if (id === 'focus' || this.myUserId() === id) {
         return;
     }
+
     const participant
-        = new JitsiParticipant(jid, this, nick, isHidden, statsID, status);
+        = new JitsiParticipant(jid, this, nick, isHidden, statsID, status, identity);
 
     participant._role = role;
     participant._botType = botType;
@@ -1322,18 +1351,33 @@ JitsiConference.prototype.onMemberJoined = function(
         JitsiConferenceEvents.USER_JOINED,
         id,
         participant);
-    this.xmpp.caps.getFeatures(jid)
-        .then(features => {
-            participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
-            this.updateDTMFSupport();
-        },
-        error => logger.warn(`Failed to discover features of ${jid}`, error));
+
+    this._updateFeatures(participant);
 
     this._maybeStartOrStopP2P();
     this._maybeSetSITimeout();
 };
 
 /* eslint-enable max-params */
+
+/**
+ * Updates features for a participant.
+ * @param {JitsiParticipant} participant - The participant to query for features.
+ * @returns {void}
+ * @private
+ */
+JitsiConference.prototype._updateFeatures = function(participant) {
+    participant.getFeatures()
+        .then(features => {
+            participant._supportsDTMF = features.has('urn:xmpp:jingle:dtmf:0');
+            this.updateDTMFSupport();
+
+            if (features.has('http://jitsi.org/protocol/jigasi')) {
+                participant.setProperty('features_jigasi', true);
+            }
+        })
+        .catch(() => false);
+};
 
 /**
  * Get notified when member bot type had changed.
@@ -1373,6 +1417,7 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
     if (id === 'focus' || this.myUserId() === id) {
         return;
     }
+
     const participant = this.participants[id];
 
     delete this.participants[id];
@@ -1391,6 +1436,33 @@ JitsiConference.prototype.onMemberLeft = function(jid) {
 
     this._maybeStartOrStopP2P(true /* triggered by user left event */);
     this._maybeClearSITimeout();
+};
+
+/**
+ * Designates an event indicating that we were kicked from the XMPP MUC.
+ * @param {boolean} isSelfPresence - whether it is for local participant
+ * or another participant.
+ * @param {string} actorId - the id of the participant who was initiator
+ * of the kick.
+ * @param {string?} kickedParticipantId - when it is not a kick for local participant,
+ * this is the id of the participant which was kicked.
+ */
+JitsiConference.prototype.onMemberKicked = function(isSelfPresence, actorId, kickedParticipantId) {
+    const actorParticipant = this.participants[actorId];
+
+    if (isSelfPresence) {
+        this.eventEmitter.emit(
+            JitsiConferenceEvents.KICKED, actorParticipant);
+
+        this.leave();
+
+        return;
+    }
+
+    const kickedParticipant = this.participants[kickedParticipantId];
+
+    this.eventEmitter.emit(
+        JitsiConferenceEvents.PARTICIPANT_KICKED, actorParticipant, kickedParticipant);
 };
 
 /**
