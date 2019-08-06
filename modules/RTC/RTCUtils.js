@@ -440,14 +440,21 @@ function getSSConstraints(options = {}) {
         frameRate = {
             min: SS_DEFAULT_FRAME_RATE,
             max: SS_DEFAULT_FRAME_RATE
-        }
+        },
+        resolution = 1080
     } = options;
     const { max, min } = frameRate;
 
+    const _maxWidth = Resolutions[resolution].width;
+    const _maxHeight = Resolutions[resolution].height;
+
+    
+
+    logger.info('_maxWidth:'+_maxWidth+" _maxHeight:"+_maxHeight);
     const constraints = {
         chromeMediaSource: options.source,
-        maxWidth: window.screen.width,
-        maxHeight: window.screen.height
+        maxWidth: _maxWidth,
+        maxHeight: _maxHeight
     };
 
     if (typeof min === 'number') {
@@ -843,8 +850,6 @@ class RTCUtils extends Listenable {
         if (this.isDeviceListAvailable()) {
             this.enumerateDevices(ds => {
                 availableDevices = ds.splice(0);
-
-                logger.debug('Available devices: ', availableDevices);
                 sendDeviceListToAnalytics(availableDevices);
 
                 eventEmitter.emit(
@@ -1171,6 +1176,7 @@ class RTCUtils extends Listenable {
      */
     _parseDesktopSharingOptions(options) {
         return {
+            resolution: options.resolution,
             ...options.desktopSharingExtensionExternalInstallation,
             desktopSharingSources: options.desktopSharingSources,
             gumOptions: {
@@ -1280,7 +1286,8 @@ class RTCUtils extends Listenable {
             return this._newGetDesktopMedia({
                 desktopSharingExtensionExternalInstallation,
                 desktopSharingSources,
-                desktopSharingFrameRate
+                desktopSharingFrameRate,
+                resolution: options.resolution
             });
         }.bind(this);
 

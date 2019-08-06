@@ -184,7 +184,7 @@ const ScreenObtainer = {
     obtainScreenOnElectron(options = {}, onSuccess, onFailure) {
         if (window.JitsiMeetScreenObtainer
             && window.JitsiMeetScreenObtainer.openDesktopPicker) {
-            const { desktopSharingSources, gumOptions } = options;
+            const { desktopSharingSources, gumOptions,resolution } = options;
 
             window.JitsiMeetScreenObtainer.openDesktopPicker(
                 {
@@ -198,7 +198,8 @@ const ScreenObtainer = {
                                 streamId,
                                 streamType
                             },
-                            gumOptions
+                            gumOptions,
+                            resolution
                         },
                         onSuccess,
                         onFailure
@@ -586,11 +587,13 @@ function onGetStreamResponse(
         onSuccess,
         onFailure) {
     const { streamId, streamType, error } = options.response || {};
+    logger.info("onGetStreamResponse"+options.resolution);
 
     if (streamId) {
         const gumOptions = {
             desktopStream: streamId,
-            ...options.gumOptions
+            ...options.gumOptions,
+            resolution: options.resolution
         };
 
         gumFunction([ 'desktop' ], gumOptions)
