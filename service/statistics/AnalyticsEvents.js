@@ -332,6 +332,23 @@ export const createGetUserMediaEvent = function(action, attributes = {}) {
 };
 
 /**
+ * Creates an event related to remote participant connection status changes.
+ *
+ * @param attributes the attributes to attach to the event.
+ * @returns {{type: string, source: string, name: string}}
+ */
+export const createParticipantConnectionStatusEvent = function(attributes = {}) {
+    const action = 'duration';
+
+    return {
+        type: TYPE_OPERATIONAL,
+        source: 'peer.conn.status',
+        action,
+        attributes
+    };
+};
+
+/**
  * Creates an event for a Jingle-related event.
  * @param action the action of the event
  * @param attributes attributes to add to the event.
@@ -452,6 +469,26 @@ export const createRttByRegionEvent = function(attributes) {
         attributes
     };
 };
+
+/**
+ * Creates an event which contains information about the audio output problem (the user id of the affected participant,
+ * the local audio levels and the remote audio levels that triggered the event).
+ *
+ * @param {string} userID - The user id of the affected participant.
+ * @param {*} localAudioLevel - The local audio levels.
+ * @param {*} remoteAudioLevels - The audio levels received from the participant.
+ */
+export function createAudioOutputProblemEvent(userID, localAudioLevel, remoteAudioLevels) {
+    return {
+        type: TYPE_OPERATIONAL,
+        action: 'audio.output.problem',
+        attributes: {
+            userID,
+            localAudioLevel,
+            remoteAudioLevels
+        }
+    };
+}
 
 /**
  * Creates an event which contains an information related to the bridge channel close event.

@@ -307,7 +307,7 @@ JitsiConferenceEventManager.prototype.setupChatRoomListeners = function() {
 
             conference.eventEmitter.emit(
                 JitsiConferenceEvents.MESSAGE_RECEIVED,
-                id, txt, ts);
+                id, txt, ts, displayName);
         });
 
     chatRoom.addListener(
@@ -429,11 +429,12 @@ JitsiConferenceEventManager.prototype.setupRTCListeners = function() {
                 conference.lastDominantSpeaker = id;
                 conference.eventEmitter.emit(
                     JitsiConferenceEvents.DOMINANT_SPEAKER_CHANGED, id);
-            }
-            if (conference.statistics && conference.myUserId() === id) {
-                // We are the new dominant speaker.
-                conference.statistics.sendDominantSpeakerEvent(
-                    conference.room.roomjid);
+
+                if (conference.statistics && conference.myUserId() === id) {
+                    // We are the new dominant speaker.
+                    conference.statistics.sendDominantSpeakerEvent(
+                        conference.room.roomjid);
+                }
             }
         });
 
