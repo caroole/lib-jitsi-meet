@@ -179,7 +179,6 @@ function getConstraints(um, options = {}) {
     const isNewStyleConstraintsSupported
         = browser.isFirefox()
             || browser.isSafariWithVP8()
-            || browser.isEdge()
             || browser.isReactNative();
 
     if (um.indexOf('video') >= 0) {
@@ -1404,8 +1403,7 @@ class RTCUtils extends Listenable {
     isDeviceChangeAvailable(deviceType) {
         return deviceType === 'output' || deviceType === 'audiooutput'
             ? isAudioOutputDeviceChangeAvailable
-            : browser.isChromiumBased()
-                || browser.isFirefox() || browser.isEdge();
+            : !browser.isSafariWithVP8();
     }
 
     /**
