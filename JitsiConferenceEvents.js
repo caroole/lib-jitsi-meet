@@ -15,6 +15,8 @@ export const AUTH_STATUS_CHANGED = 'conference.auth_status_changed';
 
 export const EXTENSION_MSG = 'conference.extension_msg';
 
+export const MUTE_BY_FOCUS = 'conference.mute_by_focus';
+
 /**
  * A participant avatar has changed.
  */
